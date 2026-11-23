@@ -1,0 +1,21 @@
+feature,label,mean_abs_shap
+age_years,building age,0.21399584
+district,district,0.08923982
+road_te,road price level,0.082333624
+t,time (month index),0.05912306
+log_area,floor area (log 坪),0.058279738
+floor,floor,0.056577086
+log_land_area,land share (log 坪),0.037989363
+parking_unpriced,parking not priced separately,0.028983952
+total_floors,total floors,0.019580089
+btype,building type,0.015937168
+baths,bathrooms,0.015453638
+road_n,road deal count,0.0140239345
+elevator,elevator,0.010337696
+floor_ratio,floor / total floors,0.0092451945
+has_addition,addition / rooftop extension,0.008163759
+halls,living rooms,0.0068671377
+rooms,bedrooms,0.00579897
+has_parking,has parking,0.004440777
+management,management committee,0.0016980148
+partition,partitioned,0.00015827955
