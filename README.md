@@ -1,6 +1,6 @@
 # 高雄房價分析與估價模型
 
-[English version](README.en.md)
+[English version](README.en.md) · **[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · [導覽 notebook](notebooks/walkthrough.ipynb)
 
 **問題**：用公開的實價登錄資料，能把高雄住宅估價估得多準？2024 年 9 月央行第七波信用管制，有沒有讓投資型的小坪數住宅受到比較大的衝擊？
 **方法**：清理 2022-01 至 2026-08 共 19 季、19.9 萬筆高雄買賣紀錄，用 SQL 分析行情、特徵價格模型（hedonic regression）建立品質調整房價指數，以時間切分的樣本外測試比較 XGBoost 與計量模型，並用事件研究／DiD 評估信用管制。
@@ -138,6 +138,8 @@ SHAP 顯示影響最大的是屋齡，其次是行政區、路段行情和交易
 - 小坪數在管制前就有相對上漲的趨勢，線性趨勢調整只是一種假設；趨勢若是非線性，估計仍可能有偏誤。
 
 ## 6. 估價網頁
+
+**線上版：https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/**（Streamlit Community Cloud；一段時間沒人使用會休眠，第一次開啟需等幾十秒喚醒）
 
 `app/streamlit_app.py`：選行政區、路名、型態、坪數、屋齡、樓層、格局、車位、是否有增建，就會給出估價、80% 預測區間（用測試期 log 殘差的 10%／90% 分位數），以及各因素對價格的影響（SHAP）。另有「區域行情」分頁。
 
