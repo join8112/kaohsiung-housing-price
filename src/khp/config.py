@@ -50,3 +50,6 @@ POLICY_EVENTS = {
 }
 
 RANDOM_STATE = 42
+# Remote mountain districts (e.g. 那瑪夏區, 桃源區) have only a handful of deals in
+# four years: too few to estimate a district effect, so they are left out of modelling.
+MIN_DISTRICT_DEALS = 10
