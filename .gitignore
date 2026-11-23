@@ -1,0 +1,14 @@
+# raw downloads and large intermediates
+data/raw/
+data/processed/*.parquet
+data/processed/*.db
+!data/processed/kaohsiung_clean.parquet
+reports/test_predictions.parquet
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+.DS_Store
+Thumbs.db
