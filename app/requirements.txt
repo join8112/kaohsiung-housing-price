@@ -1,0 +1,8 @@
+# Runtime dependencies for the Streamlit app only (Streamlit Community Cloud reads
+# the requirements file next to the entrypoint first, so the deploy stays small:
+# no statsmodels / shap / scikit-learn).  xgboost is pinned to the version that
+# saved models/xgb_unit_price.json.
+streamlit==1.67.0
+xgboost==3.4.1
+pandas==3.0.5
+numpy==2.5.3

@@ -17,11 +17,11 @@
 - [x] 真實資料（111S1–115S3）下載並跑完整條 pipeline（2026-11-23），結果見下方「真實資料結果」
 - [x] README.md（中文）＋ README.en.md（英文），內嵌 reports/figures 的圖（2026-11-23）
 - [ ] 部署 Streamlit Community Cloud
-- [ ] （選做）notebooks/ 放一份執行過的 walkthrough notebook
+- [x] notebooks/walkthrough.ipynb：執行過的導覽 notebook（2026-11-23；由 `jupyter nbconvert --execute` 重新產生輸出）
 
 ## 真實資料結果（2026-11-23）
 
-- 清理後 108,063 筆（2022-01 至 2026-08）。路名解析率 99.1%、屋齡缺值 1%、單價中位數約 29 萬／坪。
+- 清理後 108,063 筆（2022-01 至 2026-08）。路名解析率 98.9%、屋齡缺值 0.9%、單價中位數約 28.6 萬／坪。
 - **增建／頂樓加蓋／未登記不再當特殊交易刪除**（原本會刪掉約一半的透天厝），改成 `has_addition` 特徵（使用者 2026-11-23 確認）。
 - 成交少於 10 筆的山區行政區（那瑪夏、桃源、田寮、茂林）不進模型（`config.MIN_DISTRICT_DEALS`）。
 - 測試期 MdAPE：baseline 18.9%、特徵價格 OLS 14.0%、XGBoost 8.9%（±10% 內 54.9%、±20% 內 80.3%）。
@@ -98,3 +98,4 @@ tests/                     解析函式與 wild cluster bootstrap 的單元測�
 - 使用者的電腦是 Windows；指令請用 `python`（不是 `python3`）。中文字型 `plots.py` 會自動找 Microsoft JhengHei。
 - `data/raw/`、`*.db`、大型 parquet 不 commit（見 .gitignore）。`models/` 與 `reports/` 的小檔案要 commit，Streamlit Cloud 部署需要。
 - 每完成一個階段就 commit。
+- Streamlit Cloud 用 `app/requirements.txt`（只裝 app 需要的 4 個套件），xgboost 版本要和存 `models/xgb_unit_price.json` 時一致；換版本重訓後要一起更新。
