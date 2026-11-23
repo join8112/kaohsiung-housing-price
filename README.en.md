@@ -1,6 +1,6 @@
 # Kaohsiung Housing Prices: Analysis and Valuation Model
 
-[中文版](README.md)
+[中文版](README.md) · **[Live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · [Walkthrough notebook](notebooks/walkthrough.ipynb)
 
 **Question.** How accurately can Kaohsiung homes be valued from public transaction records? And did Taiwan's September 2024 mortgage credit controls hit investor-type small units harder than family homes?
 **Approach.** Clean 199k Kaohsiung sale records (19 quarterly releases, 2022-01 to 2026-08) from the Ministry of the Interior's actual-price registry; analyse the market in SQL; build a quality-adjusted price index with a hedonic regression; compare XGBoost with econometric models on an out-of-time test set; and evaluate the credit controls with an event study / difference-in-differences.
@@ -138,6 +138,8 @@ SHAP values show building age matters most, followed by district, road price lev
 - The linear-trend adjustment is itself an assumption; if the pre-existing trend is non-linear, the estimate can still be biased.
 
 ## 6. Valuation web app
+
+**Live: https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/** (Streamlit Community Cloud; the app sleeps when idle, so the first load can take a few tens of seconds)
 
 `app/streamlit_app.py`: choose district, road, type, area, age, floor, layout, parking and additions to get a valuation, an 80% prediction interval (from the 10th/90th percentiles of test-period log residuals) and a SHAP breakdown of what drives the price. A second tab shows local market statistics.
 
