@@ -11,7 +11,7 @@ CAT_FEATURES = ["district", "btype"]
 NUM_FEATURES = [
     "log_area", "log_land_area", "age_years", "floor", "total_floors", "floor_ratio",
     "rooms", "halls", "baths", "elevator", "management", "partition",
-    "has_parking", "parking_unpriced", "t", "road_te", "road_n",
+    "has_parking", "parking_unpriced", "has_addition", "t", "road_te", "road_n",
 ]
 FEATURES = CAT_FEATURES + NUM_FEATURES
 
@@ -22,6 +22,7 @@ LABELS = {
     "floor_ratio": "floor / total floors", "rooms": "bedrooms", "halls": "living rooms",
     "baths": "bathrooms", "elevator": "elevator", "management": "management committee",
     "partition": "partitioned", "has_parking": "has parking", "parking_unpriced": "parking not priced separately",
+    "has_addition": "addition / rooftop extension",
     "t": "time (month index)", "road_te": "road price level", "road_n": "road deal count",
     "district": "district", "btype": "building type",
 }

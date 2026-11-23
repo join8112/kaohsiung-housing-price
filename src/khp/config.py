@@ -36,10 +36,15 @@ RESIDENTIAL_TYPES = {
 # Keywords in 備註 that mark non-arm's-length or otherwise non-comparable deals.
 SPECIAL_DEAL_KEYWORDS = [
     "親友", "員工", "特殊關係", "二親等", "親屬", "債權債務", "抵債",
-    "瑕疵", "凶宅", "非自然死亡", "增建", "頂加", "頂樓加蓋", "未登記",
+    "瑕疵", "凶宅", "非自然死亡",
     "法拍", "拍賣", "急買急賣", "政府機關", "公有", "地上權", "持分",
     "共有人", "毛胚", "含租約", "附租約", "建商與地主", "合建",
 ]
+
+# Additions / rooftop extensions / unregistered space are common in Kaohsiung
+# (about half of 透天厝 sales mention them) and are ordinary market deals, so they
+# are kept and flagged with has_addition instead of being dropped.
+ADDITION_KEYWORDS = ["增建", "頂加", "頂樓加蓋", "未登記"]
 
 # Central bank (央行) selective credit control timeline used in the policy study.
 POLICY_EVENTS = {

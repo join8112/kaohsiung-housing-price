@@ -39,7 +39,7 @@ REF = -1                       # 2024Q2
 POST_START = pd.Timestamp("2024-10-01")
 
 CONTROLS = ("log_area + age_years + I(age_years**2) + C(btype) + C(floor_cat)"
-            " + baths + management + has_parking + parking_unpriced")
+            " + baths + management + has_parking + parking_unpriced + has_addition")
 
 
 def policy_sample() -> pd.DataFrame:

@@ -20,7 +20,7 @@ TEST_START = pd.Timestamp("2026-01-01")
 
 HEDONIC_RHS = (
     "log_area + log_land_area + age_years + I(age_years**2) + C(btype) + C(floor_cat)"
-    " + rooms + baths + elevator + management + has_parking + parking_unpriced"
+    " + rooms + baths + elevator + management + has_parking + parking_unpriced + has_addition"
     " + C(district)"
 )
 

@@ -20,7 +20,8 @@ LABELS_ZH = {
     "district": "行政區", "btype": "建物型態", "log_area": "坪數", "log_land_area": "土地持分",
     "age_years": "屋齡", "floor": "樓層", "total_floors": "總樓層", "floor_ratio": "樓層位置",
     "rooms": "房數", "halls": "廳數", "baths": "衛浴數", "elevator": "電梯", "management": "管理組織",
-    "partition": "隔間", "has_parking": "車位", "parking_unpriced": "車位未分開計價", "t": "交易時間",
+    "partition": "隔間", "has_parking": "車位", "parking_unpriced": "車位未分開計價",
+    "has_addition": "增建／頂樓加蓋", "t": "交易時間",
     "road_te": "路段行情", "road_n": "路段成交量",
 }
 
@@ -85,6 +86,7 @@ with tab_est:
         management = st.checkbox("有管理組織", value=btype in ("大樓", "華廈", "套房"))
         elevator_default = btype in ("大樓", "華廈")
         elevator = st.checkbox("有電梯", value=elevator_default, disabled=btype in ("大樓", "華廈", "公寓"))
+        addition = st.checkbox("有增建／頂樓加蓋／未登記空間", value=False)
         with st.expander("進階：土地持分"):
             dflt = defaults[(defaults["district"] == district) & (defaults["btype"] == btype)]
             land_default = float(dflt["land_area_ping"].iloc[0]) if len(dflt) and pd.notna(dflt["land_area_ping"].iloc[0]) else 10.0
@@ -107,6 +109,7 @@ with tab_est:
         "elevator": float(elevator if btype not in ("大樓", "華廈", "公寓") else elevator_default),
         "management": float(management), "partition": 1.0,
         "has_parking": float(parking != "無"), "parking_unpriced": float(parking == "有，含在總價內"),
+        "has_addition": float(addition),
         "t": float(meta["t_latest"]), "road_te": road_te, "road_n": road_n,
     }
     X = pd.DataFrame([row])[meta["features"]]
