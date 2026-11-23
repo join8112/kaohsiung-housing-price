@@ -2,7 +2,6 @@
 data/raw/
 data/processed/*.parquet
 data/processed/*.db
-!data/processed/kaohsiung_clean.parquet
 reports/test_predictions.parquet
 
 __pycache__/

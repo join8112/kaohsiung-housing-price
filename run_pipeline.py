@@ -15,6 +15,10 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
+# Windows consoles/pipes default to cp950, which cannot print characters such as "²" or "×"
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
 
 import pandas as pd  # noqa: E402
 
