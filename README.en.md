@@ -12,6 +12,8 @@
 
 ## Contents
 
+> For a step-by-step version of the whole analysis, see the [walkthrough notebook](notebooks/walkthrough.ipynb) (executed, with all outputs).
+
 1. [Data and cleaning](#1-data-and-cleaning)
 2. [SQL analysis](#2-sql-analysis)
 3. [Quality-adjusted price index](#3-quality-adjusted-price-index)
@@ -43,9 +45,9 @@ Every cleaning step is logged (`reports/cleaning_log.csv`):
 
 Key decisions:
 
-- **Unit price** = (total price − separately priced parking) ÷ (building area − parking area), in NT$10k per ping (3.3 m²). When parking is included but not priced separately (45% of deals with parking) the deal is kept and flagged with `parking_unpriced`.
+- **Unit price** = (total price − separately priced parking) ÷ (building area − parking area), in NT$10k per ping (3.3 m²). When parking is included but not priced separately (46% of deals with parking) the deal is kept and flagged with `parking_unpriced`.
 - **Building additions are not "special" deals.** Notes mentioning additions, rooftop extensions or unregistered space originally caused the deal to be dropped. Checking the real data showed this removed 17,039 ordinary deals, including **about half of all townhouse sales**. They are now kept and flagged with `has_addition` (about +8% in the hedonic model).
-- **Data-quality checks:** road names parsed for 99.1% of (partly masked) addresses; building age missing for 1%; median unit price 29.1 (NT$10k/ping), 87% between 15 and 45.
+- **Data-quality checks:** road names parsed for 98.9% of (partly masked) addresses; building age missing for 0.9%; median unit price 28.6 (NT$10k/ping), 86% between 15 and 45.
 - Four mountain districts with 7 deals in four years are left out of modelling (too few to estimate a district effect).
 
 ## 2. SQL analysis
@@ -67,7 +69,7 @@ The clean data is loaded into SQLite (`src/khp/database.py`); six queries in `sq
 
 A raw median moves with the mix of homes sold; in early 2024, for instance, a wave of newly completed buildings pushed it up. The hedonic regression puts log unit price on area, age, type, floor, layout, parking, additions, district and **month fixed effects** (errors clustered by district, R² = 0.69). The month effects trace the quality-adjusted price level.
 
-- The quality-adjusted index rose **31%** from 2022-01 to its September 2024 peak; the raw median rose 44% over the same period, the gap being mostly a composition effect from new buildings.
+- The quality-adjusted index rose **31%** from 2022-01 to its September 2024 peak; the raw median was briefly 43% above its 2022-01 level in June 2024, the excess being mostly a composition effect from new buildings.
 - After September 2024 the index was broadly flat and by end-2025 sat about 6% below the peak. Monthly deals fell from 3,000–4,000 in early 2024 to about 1,200.
 - Other coefficients: about −2.9% per year of building age (with a quadratic term); high-rises about +45% over walk-ups; additions about +8%.
 
