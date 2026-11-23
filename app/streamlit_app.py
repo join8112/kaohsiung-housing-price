@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -20,10 +21,31 @@ LABELS_ZH = {
     "district": "行政區", "btype": "建物型態", "log_area": "坪數", "log_land_area": "土地持分",
     "age_years": "屋齡", "floor": "樓層", "total_floors": "總樓層", "floor_ratio": "樓層位置",
     "rooms": "房數", "halls": "廳數", "baths": "衛浴數", "elevator": "電梯", "management": "管理組織",
-    "partition": "隔間", "has_parking": "車位", "parking_unpriced": "車位未分開計價",
+    "partition": "隔間", "has_parking": "車位", "parking_unpriced": "車位含在總價內",
     "has_addition": "增建／頂樓加蓋", "t": "交易時間",
     "road_te": "路段行情", "road_n": "路段成交量",
 }
+
+def input_labels(row: dict, road: str, land: float) -> dict[str, str]:
+    """Human-readable value of each model input, shown next to its bar in the chart."""
+    yes_no = lambda v: "有" if v >= 0.5 else "無"  # noqa: E731
+    floor = row["floor"]
+    return {
+        "district": row["district"], "btype": row["btype"],
+        "log_area": f"{np.exp(row['log_area']):.0f} 坪", "log_land_area": f"{land:.1f} 坪",
+        "age_years": f"{row['age_years']:.0f} 年",
+        "floor": "透天" if pd.isna(floor) else f"{floor:.0f}F",
+        "total_floors": f"{row['total_floors']:.0f} 層",
+        "floor_ratio": "—" if pd.isna(row["floor_ratio"]) else f"{floor:.0f}/{row['total_floors']:.0f}",
+        "rooms": f"{row['rooms']} 房", "halls": f"{row['halls']} 廳", "baths": f"{row['baths']} 衛",
+        "elevator": yes_no(row["elevator"]), "management": yes_no(row["management"]),
+        "partition": yes_no(row["partition"]), "has_parking": yes_no(row["has_parking"]),
+        "parking_unpriced": "是" if row["parking_unpriced"] >= 0.5 else "否",
+        "has_addition": yes_no(row["has_addition"]),
+        "road_te": "行政區平均" if road == "（不指定）" else road,
+        "road_n": f"{row['road_n']:.0f} 筆",
+    }
+
 
 st.set_page_config(page_title="高雄房價估價", page_icon="🏠", layout="wide")
 
@@ -134,12 +156,38 @@ with tab_est:
         if road != "（不指定）" and road_n < 20:
             st.warning(f"{road} 的成交筆數較少（{road_n:.0f} 筆），路段行情已向行政區平均收斂。")
 
+        # SHAP: each bar = how far one input moves this home's price away from the
+        # model's average valuation of all sold homes (the last column is that baseline).
         contribs = booster.predict(dm, pred_contribs=True)[0]
-        contrib = pd.Series(contribs[:-1], index=meta["features"])
-        contrib = contrib.drop("t").rename(LABELS_ZH)
+        base_price = float(np.exp(contribs[-1]))
+        contrib = pd.Series(contribs[:-1], index=meta["features"]).drop("t")
         top = contrib.reindex(contrib.abs().sort_values(ascending=False).index).head(8)
-        st.markdown("**主要影響因素**（相對於全市平均物件，對單價的影響 %）")
-        st.bar_chart(pd.DataFrame({"影響 %": 100 * (np.exp(top) - 1)}), horizontal=True)
+        values = input_labels(row, road, land)
+        chart_df = pd.DataFrame({
+            "因素": [f"{LABELS_ZH[f]}（{values[f]}）" for f in top.index],
+            "影響 %": 100 * (np.exp(top.to_numpy()) - 1),
+        })
+        chart_df["方向"] = np.where(chart_df["影響 %"] >= 0, "讓價格較高", "讓價格較低")
+
+        st.markdown("**和全市平均成交物件相比，各條件讓這間房子貴或便宜多少**")
+        bars = alt.Chart(chart_df).mark_bar().encode(
+            x=alt.X("影響 %:Q", title="對單價的影響（%）"),
+            y=alt.Y("因素:N", sort=None, title=None, axis=alt.Axis(labelLimit=260)),
+            color=alt.Color("方向:N", scale=alt.Scale(domain=["讓價格較高", "讓價格較低"],
+                                                      range=["#2563eb", "#ea580c"]),
+                            legend=alt.Legend(orient="bottom", title=None)),
+            tooltip=["因素", alt.Tooltip("影響 %:Q", format="+.1f")],
+        )
+        st.altair_chart(bars + alt.Chart(pd.DataFrame({"x": [0]})).mark_rule(color="gray").encode(x="x:Q"),
+                        width="stretch")
+        typical = meta.get("typical_home", {})
+        st.caption(
+            f"比較基準是模型對全部成交物件的平均估價 {base_price:.1f} 萬元／坪"
+            + (f"（這些物件平均屋齡約 {typical['mean_age_years']:.0f} 年、坪數中位數約 {typical['median_area_ping']:.0f} 坪）"
+               if typical else "")
+            + "。正值代表這個條件讓價格高於基準，負值代表低於基準。例如屋齡比平均新，屋齡這一項就是正的；"
+              "屋齡越大，這一項越低。各項影響是相乘疊加，不是直接相加。"
+        )
 
 with tab_market:
     st.subheader("全市行情（品質調整後的房價指數）")

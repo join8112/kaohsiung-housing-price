@@ -46,6 +46,12 @@ def load_model_data() -> pd.DataFrame:
     return df[n_deals >= config.MIN_DISTRICT_DEALS].reset_index(drop=True)
 
 
+def typical_home(df: pd.DataFrame) -> dict:
+    """Mean / median characteristics of the modelling sample (used to explain SHAP baselines)."""
+    return {"mean_age_years": round(float(df["age_years"].mean()), 1),
+            "median_area_ping": round(float(df["area_ex_park_ping"].median()), 1)}
+
+
 def price_metrics(y_true_log_unit, y_pred_log_unit, area) -> dict:
     true_total = np.exp(y_true_log_unit) * area
     pred_total = np.exp(y_pred_log_unit) * area
@@ -205,6 +211,8 @@ def run(log=print) -> dict:
         "interval_log_resid_q10_q90": [float(q10), float(q90)],
         "test_metrics": results["XGBoost"],
         "test_period_start": TEST_START.strftime("%Y-%m-%d"),
+        # the "average home" behind the app's SHAP chart, so the baseline can be explained
+        "typical_home": typical_home(df),
     }
     (config.MODELS_DIR / "metadata.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 

@@ -127,5 +127,9 @@
     "R2_log_unit_price": 0.798,
     "n": 8102
   },
-  "test_period_start": "2026-01-01"
+  "test_period_start": "2026-01-01",
+  "typical_home": {
+    "mean_age_years": 17.3,
+    "median_area_ping": 34.0
+  }
 }
