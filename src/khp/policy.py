@@ -21,6 +21,20 @@ The window ends on 2026-03-19, the day before the first easing.  Standard
 errors are clustered by district.  This identifies a *differential* effect
 only: anything that hit both segments equally (e.g. the bank lending quota
 from mid-August 2024) is absorbed by the fixed effects.
+
+Inference with few clusters
+---------------------------
+There are only ~30 districts, so cluster-robust Wald tests can over-reject.
+Two robustness checks are reported next to the usual cluster SEs:
+
+* pre-trend tests use an F distribution with G − 1 denominator df;
+* the price DiD p-value is also computed with a wild cluster restricted
+  bootstrap (WCR, Webb six-point weights), the standard fix for few clusters
+  (Cameron, Gelbach & Miller 2008; Roodman et al. 2019).
+
+If small units were already gaining on family units before the controls (a
+pre-trend), the plain DiD mixes that trend into the "effect".  A trend-
+adjusted DiD (small × linear quarter trend) is reported as a further check.
 """
 from __future__ import annotations
 
@@ -39,7 +53,7 @@ REF = -1                       # 2024Q2
 POST_START = pd.Timestamp("2024-10-01")
 
 CONTROLS = ("log_area + age_years + I(age_years**2) + C(btype) + C(floor_cat)"
-            " + baths + management + has_parking + parking_unpriced")
+            " + baths + management + has_parking + parking_unpriced + has_addition")
 
 
 def policy_sample() -> pd.DataFrame:
@@ -81,13 +95,71 @@ def price_event_study(df: pd.DataFrame):
     return es, fit
 
 
-def price_did(df: pd.DataFrame):
+def _did_sample(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop the 2024Q3 transition quarter and build the DiD regressors."""
     d = df[(df["trade_date"] < pd.Timestamp("2024-07-01")) | (df["trade_date"] >= POST_START)].copy()
     d["post"] = (d["trade_date"] >= POST_START).astype(int)
     d["small_post"] = d["small"] * d["post"]
-    fit = smf.ols("log_unit_price ~ small + small_post + " + CONTROLS + " + C(district) + C(ym)",
-                  data=d).fit(cov_type="cluster", cov_kwds={"groups": d["district"]})
-    return fit
+    d["small_trend"] = d["small"] * d["rel"]      # small × linear quarter trend
+    return d
+
+
+PRICE_DID_FORMULA = "log_unit_price ~ small + small_post + " + CONTROLS + " + C(district) + C(ym)"
+
+
+def price_did(df: pd.DataFrame, trend: bool = False):
+    d = _did_sample(df)
+    formula = PRICE_DID_FORMULA + (" + small_trend" if trend else "")
+    return smf.ols(formula, data=d).fit(cov_type="cluster", cov_kwds={"groups": d["district"]})
+
+
+WEBB_WEIGHTS = np.array([-np.sqrt(1.5), -1.0, -np.sqrt(0.5), np.sqrt(0.5), 1.0, np.sqrt(1.5)])
+
+
+def wild_cluster_bootstrap(formula: str, data: pd.DataFrame, param: str, cluster: str,
+                           reps: int = 999, seed: int = config.RANDOM_STATE) -> dict:
+    """Wild cluster restricted bootstrap p-value for H0: param = 0.
+
+    1. Fit the model with the null imposed (param dropped) -> fitted values and residuals.
+    2. For each replication, flip every cluster's residuals by one Webb weight,
+       rebuild y*, re-estimate the full model and its cluster-robust t-stat.
+    3. p-value = share of bootstrap |t*| at least as large as the observed |t|.
+
+    The full-model OLS is solved once with a pseudo-inverse, so each replication
+    is just a matrix-vector product.
+    """
+    import patsy
+
+    y, X = patsy.dmatrices(formula, data, return_type="dataframe")
+    j = list(X.columns).index(param)
+    groups = pd.factorize(data.loc[X.index, cluster])[0]
+    G = groups.max() + 1
+    X, y = X.to_numpy(), y.to_numpy().ravel()
+    n, k = X.shape
+
+    pinv = np.linalg.pinv(X)                      # beta = pinv @ y
+    c = pinv[j]                                   # beta_j = c @ y
+    scale = G / (G - 1) * (n - 1) / (n - k)       # CRV1 small-sample factor
+
+    def t_stat(yv):
+        beta = pinv @ yv
+        e = yv - X @ beta
+        score = np.bincount(groups, weights=c * e, minlength=G)
+        return beta[j] / np.sqrt(scale * np.sum(score ** 2))
+
+    t_obs = t_stat(y)
+    X0 = np.delete(X, j, axis=1)                  # restricted model (H0 imposed)
+    fitted0 = X0 @ (np.linalg.pinv(X0) @ y)
+    u0 = y - fitted0
+
+    rng = np.random.default_rng(seed)
+    t_boot = np.empty(reps)
+    for r in range(reps):
+        w = rng.choice(WEBB_WEIGHTS, size=G)[groups]
+        t_boot[r] = t_stat(fitted0 + u0 * w)
+    p = (1 + np.sum(np.abs(t_boot) >= abs(t_obs))) / (reps + 1)
+    return {"t_stat": round(float(t_obs), 3), "p_value": round(float(p), 4),
+            "reps": reps, "clusters": int(G), "weights": "Webb"}
 
 
 def volume_panel(df: pd.DataFrame, min_deals: int = 150) -> pd.DataFrame:
@@ -139,8 +211,17 @@ def pretrend_test(fit, dummies_prefix: str = "ev_m") -> dict:
     R = np.zeros((len(names), len(fit.params)))
     for i, n in enumerate(names):
         R[i, list(fit.params.index).index(n)] = 1
-    w = fit.wald_test(R, scalar=True)
-    return {"pre_period_dummies": len(names), "wald_stat": float(w.statistic), "p_value": float(w.pvalue)}
+    chi2 = fit.wald_test(R, scalar=True)
+    # F version: with G clusters the cluster-robust covariance has at most G - 1 degrees of freedom
+    G = len(np.unique(fit.model.data.frame["district"])) if "district" in fit.model.data.frame else None
+    q = len(names)
+    out = {"pre_period_dummies": q, "wald_chi2": round(float(chi2.statistic), 2),
+           "p_value_chi2": float(chi2.pvalue)}
+    if G:
+        from scipy import stats
+        F = float(chi2.statistic) / q
+        out.update({"F": round(F, 2), "df": [q, G - 1], "p_value_F": float(stats.f.sf(F, q, G - 1))})
+    return out
 
 
 def _summ(fit, name: str) -> dict:
@@ -159,6 +240,9 @@ def run(log=print) -> dict:
     es_price, fit_price = price_event_study(df)
     es_price.to_csv(out_dir / "event_study_price.csv", index=False)
     did_price = price_did(df)
+    did_price_trend = price_did(df, trend=True)
+    log("wild cluster bootstrap for the price DiD …")
+    wcb = wild_cluster_bootstrap(PRICE_DID_FORMULA, _did_sample(df), "small_post", "district")
 
     panel = volume_panel(df)
     es_vol, fit_vol = volume_event_study(panel)
@@ -169,7 +253,8 @@ def run(log=print) -> dict:
         "window": [str(WINDOW_START.date()), str((WINDOW_END - pd.Timedelta(days=1)).date())],
         "n_deals": int(len(df)),
         "n_districts_volume": int(panel["district"].nunique()),
-        "price_did_small_x_post": _summ(did_price, "small_post"),
+        "price_did_small_x_post": {**_summ(did_price, "small_post"), "wild_cluster_bootstrap": wcb},
+        "price_did_trend_adjusted": _summ(did_price_trend, "small_post"),
         "volume_did_small_x_post": _summ(did_vol, "small_post"),
         "price_pretrend_test": pretrend_test(fit_price),
         "volume_pretrend_test": pretrend_test(fit_vol),

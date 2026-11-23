@@ -1,0 +1,10 @@
+step,rows_after,removed
+raw Kaohsiung rows (de-duplicated),199457,0
+keep sales that include a building (drop land-only / parking-only),160929,38528
+keep residential building types (大樓/華廈/公寓/透天厝/套房),160882,47
+keep single-building deals (建物 = 1),159665,1217
+trade date on/after 2022-01-01,128684,30981
+drop special / non-arm's-length deals flagged in 備註,113248,15436
+drop units whose main use is commercial / industrial,110383,2865
+valid area (5–300 坪 excl. parking) and price (> NT$300k),110098,285
+drop unit-price outliers (|robust z| > 3.5 within district × type),108063,2035

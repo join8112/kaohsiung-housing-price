@@ -1,0 +1,4 @@
+model,MAPE_%,MdAPE_%,within_10%,within_20%,R2_log_unit_price,n
+Baseline: district × type median,30.07,18.94,29.7,52.0,0.311,8102.0
+"Hedonic OLS (+ road level, trend)",21.13,14.01,37.9,64.4,0.63,8102.0
+XGBoost,13.27,8.87,54.9,80.3,0.798,8102.0

@@ -169,6 +169,8 @@ def clean_sales(raw: pd.DataFrame, start: str = "2022-01-01") -> tuple[pd.DataFr
     df = df[df["trade_date"] >= pd.Timestamp(start)]
     df = step(f"trade date on/after {start}", df)
 
+    df["has_addition"] = df["note"].fillna("").str.contains("|".join(config.ADDITION_KEYWORDS)).astype(int)
+
     pattern = "|".join(config.SPECIAL_DEAL_KEYWORDS)
     special = df["note"].fillna("").str.contains(pattern)
     df = df[~special]
@@ -246,7 +248,7 @@ def clean_sales(raw: pd.DataFrame, start: str = "2022-01-01") -> tuple[pd.DataFr
         "area_ex_park_ping", "land_area_ping", "building_area_m2", "main_area_m2", "balcony_area_m2",
         "age_years", "floor", "total_floors", "floor_ratio", "n_floors_transferred", "whole_building",
         "rooms", "halls", "baths", "partition", "elevator", "management",
-        "has_parking", "parking_unpriced", "parking_type", "parking_price", "n_parking",
+        "has_parking", "parking_unpriced", "has_addition", "parking_type", "parking_price", "n_parking",
         "note", "source_file",
     ]
     out = df[[c for c in keep if c in df.columns]].sort_values("trade_date").reset_index(drop=True)

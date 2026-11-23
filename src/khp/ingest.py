@@ -97,8 +97,20 @@ def read_csv_from_zip(zf: zipfile.ZipFile, member: str) -> pd.DataFrame:
             continue
     else:  # pragma: no cover - would mean an unknown encoding
         raise ValueError(f"cannot decode {member}")
-    # first row = Chinese header, second row = English header -> skip it
-    df = pd.read_csv(io.StringIO(text), dtype=str, skiprows=[1], keep_default_na=False)
+    # first row = Chinese header, second row = English header -> skip it.
+    # A few rows contain an unquoted comma inside a free-text field (e.g. 棟及號
+    # "A2、A3棟4,5號" in 113S4 pre-sale), so they have one field too many.  We
+    # cannot tell which field the extra comma belongs to, so such rows are
+    # dropped and counted (df.attrs["bad_lines"]) for the ingest log.
+    bad_lines: list[list[str]] = []
+
+    def _on_bad_line(fields: list[str]) -> None:
+        bad_lines.append(fields)
+        return None  # skip the row
+
+    df = pd.read_csv(io.StringIO(text), dtype=str, skiprows=[1], keep_default_na=False,
+                     engine="python", on_bad_lines=_on_bad_line)
+    df.attrs["bad_lines"] = len(bad_lines)
     df.columns = [_normalise_header(c) for c in df.columns]
     df = df.rename(columns={k: v for k, v in COLUMN_MAP.items() if k in df.columns})
     return df
@@ -124,6 +136,7 @@ def load_city_files(raw_dir: Path = config.DATA_RAW, city: str = config.CITY_COD
                 df["source_file"] = path.name
                 bucket.append(df)
                 entry[f"rows_{kind}"] = len(df)
+                entry[f"bad_lines_{kind}"] = df.attrs["bad_lines"]
         entry["status"] = "ok"
         log.append(entry)
 

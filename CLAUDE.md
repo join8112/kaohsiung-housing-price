@@ -14,10 +14,20 @@
 
 - [x] 程式架構全部寫好，並用「模擬資料」把整條 pipeline 跑通（ingest → clean → sql → model → policy → figures），Streamlit app 也用 AppTest 測過
 - [x] `pytest` 解析函式單元測試 7 個全過
-- [ ] **尚未用真實資料跑過**：下一步從這裡開始
-- [ ] README.md（中文）＋ README.en.md（英文）：等真實結果出來再寫，內嵌 reports/figures 的圖
+- [x] 真實資料（111S1–115S3）下載並跑完整條 pipeline（2026-11-23），結果見下方「真實資料結果」
+- [x] README.md（中文）＋ README.en.md（英文），內嵌 reports/figures 的圖（2026-11-23）
 - [ ] 部署 Streamlit Community Cloud
 - [ ] （選做）notebooks/ 放一份執行過的 walkthrough notebook
+
+## 真實資料結果（2026-11-23）
+
+- 清理後 108,063 筆（2022-01 至 2026-08）。路名解析率 99.1%、屋齡缺值 1%、單價中位數約 29 萬／坪。
+- **增建／頂樓加蓋／未登記不再當特殊交易刪除**（原本會刪掉約一半的透天厝），改成 `has_addition` 特徵（使用者 2026-11-23 確認）。
+- 成交少於 10 筆的山區行政區（那瑪夏、桃源、田寮、茂林）不進模型（`config.MIN_DISTRICT_DEALS`）。
+- 測試期 MdAPE：baseline 18.9%、特徵價格 OLS 14.0%、XGBoost 8.9%（±10% 內 54.9%、±20% 內 80.3%）。
+- 政策分析：價格 pre-trend 檢定拒絕（F 檢定 p≈0.0001），小坪數在管制前就相對走高。
+  單純 DiD +3.2%（wild cluster bootstrap p=0.007），但加入小坪數線性趨勢後只剩 +1.7%（p≈0.10）。
+  交易量沒有顯著差異。README 要說「沒有穩健證據顯示管制對小坪數價格有差異效果」。
 
 ## 下一步（照順序）
 
@@ -51,7 +61,7 @@ src/khp/modeling.py        特徵價格模型（月份固定效果 → 品質調
 src/khp/policy.py          信用管制事件研究與 DiD
 src/khp/plots.py           README 用的圖（reports/figures/）
 app/streamlit_app.py       估價網頁：streamlit run app/streamlit_app.py
-tests/test_clean.py        解析函式測試：python -m pytest
+tests/                     解析函式與 wild cluster bootstrap 的單元測試：python -m pytest
 ```
 
 ## 重要設計決策
@@ -59,7 +69,7 @@ tests/test_clean.py        解析函式測試：python -m pytest
 - **資料範圍**：2022-01 起的高雄市不動產買賣（成屋，A 檔）。只保留含建物、住宅型態（大樓／華廈／公寓／透天厝／套房）、單一建物的交易。
 - **價格定義**：單價 = （總價 − 分開計價的車位價）÷（建物面積 − 車位面積），單位萬元／坪。
   車位有但沒有分開計價時，標記 `parking_unpriced = 1` 並當作特徵，而不是刪掉。
-- **特殊交易**：`config.SPECIAL_DEAL_KEYWORDS` 比對備註（親友、瑕疵、增建、法拍、持分……）。
+- **特殊交易**：`config.SPECIAL_DEAL_KEYWORDS` 比對備註（親友、瑕疵、法拍、持分……）。增建／頂樓加蓋／未登記（`config.ADDITION_KEYWORDS`）不刪除，改成 `has_addition` 特徵。
 - **離群值**：行政區 × 型態內，log 單價的 robust z（MAD）超過 3.5 就刪除。
 - **模型驗證採時間切分**：train < 2025-07、valid 2025-07～12（調參與 early stopping）、test ≥ 2026-01。
   報告的是 test 期的總價誤差（MdAPE、MAPE、誤差在 ±10%／±20% 內的比例）。

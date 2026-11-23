@@ -20,7 +20,7 @@ TEST_START = pd.Timestamp("2026-01-01")
 
 HEDONIC_RHS = (
     "log_area + log_land_area + age_years + I(age_years**2) + C(btype) + C(floor_cat)"
-    " + rooms + baths + elevator + management + has_parking + parking_unpriced"
+    " + rooms + baths + elevator + management + has_parking + parking_unpriced + has_addition"
     " + C(district)"
 )
 
@@ -41,7 +41,9 @@ def load_model_data() -> pd.DataFrame:
     df = pd.read_parquet(config.CLEAN_PARQUET)
     df = add_basic_features(df)
     ok = df["age_years"].notna() & df[["rooms", "halls", "baths"]].notna().all(axis=1)
-    return df[ok].reset_index(drop=True)
+    df = df[ok]
+    n_deals = df.groupby("district")["district"].transform("size")
+    return df[n_deals >= config.MIN_DISTRICT_DEALS].reset_index(drop=True)
 
 
 def price_metrics(y_true_log_unit, y_pred_log_unit, area) -> dict:
