@@ -2,9 +2,28 @@
 
 [中文版](README.md) · **[Live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · [Walkthrough notebook](notebooks/walkthrough.ipynb)
 
-**Question.** How accurately can Kaohsiung homes be valued from public transaction records? And did Taiwan's September 2024 mortgage credit controls hit investor-type small units harder than family homes?
-**Approach.** Clean 199k Kaohsiung sale records (19 quarterly releases, 2022-01 to 2026-08) from the Ministry of the Interior's actual-price registry; analyse the market in SQL; build a quality-adjusted price index with a hedonic regression; compare XGBoost with econometric models on an out-of-time test set; and evaluate the credit controls with an event study / difference-in-differences.
-**Results.** On 2026 deals the XGBoost model has a **median absolute error of 8.9%** on total price (hedonic OLS 14.0%, baseline 18.9%); 80% of homes are within ±20%. Quality-adjusted prices rose **31%** from 2022-01 to the September 2024 peak and have edged down since. There is **no robust differential effect** of the credit controls on small units: the plain DiD is +3.2%, but small units were already catching up before the controls; after removing that trend the estimate is +1.7% (p ≈ 0.10), and deal volumes show no significant difference.
+An analysis of Kaohsiung house prices from 2022 to 2026 using Taiwan's public actual-price registry, with a valuation model you can use online and an evaluation of the September 2024 mortgage credit controls.
+
+### Two questions
+
+1. How accurately can Kaohsiung homes be valued from public transaction records alone?
+2. Did the central bank's 7th round of credit controls (effective 2024-09-20) hit small units, which investors favour, harder than family homes?
+
+### Key results
+
+| | Result |
+|---|---|
+| **Valuation accuracy** | On new 2026 deals, XGBoost has a **median error of 8.9%** on total price, with 80% of homes within ±20% (hedonic model 14.0%, baseline 18.9%) |
+| **Price trend** | Quality-adjusted prices rose **31%** from 2022-01 to the September 2024 peak and have been flat to slightly down since |
+| **Credit controls** | **No robust evidence** that small units were hit harder. Small units appear to gain 3.2% relative to family homes, but most of that reflects a trend that began before the controls; net of it the effect is +1.7% and not significant. Volumes show no difference either |
+
+### What the project covers
+
+- **Data engineering:** automated download of 19 quarterly files; 199k records cleaned with every step logged
+- **SQL:** market levels, year-over-year change and road rankings in SQLite (CTEs, window functions)
+- **Econometrics:** hedonic regression for a quality-adjusted price index; event study / DiD with a wild cluster bootstrap
+- **Machine learning:** XGBoost with out-of-time validation and SHAP explanations
+- **Deliverables:** [live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/) and a [walkthrough notebook](notebooks/walkthrough.ipynb)
 
 ![Price index and volume](reports/figures/01_market_overview.png)
 
