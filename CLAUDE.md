@@ -19,6 +19,7 @@
 - [x] 部署 Streamlit Community Cloud（2026-11-23，使用者帳號）：https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/
 - [x] notebooks/walkthrough.ipynb：執行過的導覽 notebook（2026-11-23；由 `jupyter nbconvert --execute` 重新產生輸出）
 - [x] 估價 API：`api/main.py`（FastAPI）＋ `src/khp/predictor.py`（serving 層）＋ `Dockerfile` ＋ `.github/workflows/ci.yml`，`tests/test_api.py` 17 個測試（2026-11-25）
+- [x] 部署 Render（2026-11-25，使用者帳號，Docker、Free、自動部署 main）：https://kaohsiung-housing-price.onrender.com/docs
 
 ## 真實資料結果（2026-11-23）
 

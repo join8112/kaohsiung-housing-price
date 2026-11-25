@@ -1,6 +1,6 @@
 # Kaohsiung Housing Prices: Analysis and Valuation Model
 
-[中文版](README.md) · **[Live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · [Walkthrough notebook](notebooks/walkthrough.ipynb)
+[中文版](README.md) · **[Live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · **[Valuation API docs](https://kaohsiung-housing-price.onrender.com/docs)** · [Walkthrough notebook](notebooks/walkthrough.ipynb)
 
 An analysis of Kaohsiung house prices from 2022 to 2026 using Taiwan's public actual-price registry, with a valuation model you can use online and an evaluation of the September 2024 mortgage credit controls.
 
@@ -173,6 +173,8 @@ streamlit run app/streamlit_app.py
 
 The same model served as a REST API, so other systems (or a reviewer with `curl`) can call it, with interactive docs.
 
+**Live: https://kaohsiung-housing-price.onrender.com/docs** (Render free tier, deployed from the Dockerfile and redeployed on every commit to main; it sleeps after 15 minutes idle, so the first request can take 30–60 seconds)
+
 | | |
 |---|---|
 | **Docs** | `/docs` (Swagger UI, requests can be sent from the browser), `/openapi.json` |
@@ -194,7 +196,7 @@ docker run --rm -p 8000:8000 khp-api
 ```
 
 ```bash
-curl -X POST http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
+curl -X POST https://kaohsiung-housing-price.onrender.com/predict -H 'Content-Type: application/json' -d '{
   "district": "鳳山區", "btype": "大樓", "area_ping": 35, "age_years": 10,
   "total_floors": 15, "floor": 7, "road": "中山東路", "parking": "separate"}'
 ```

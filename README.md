@@ -1,6 +1,6 @@
 # 高雄房價分析與估價模型
 
-[English version](README.en.md) · **[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · [導覽 notebook](notebooks/walkthrough.ipynb)
+[English version](README.en.md) · **[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · **[估價 API 文件](https://kaohsiung-housing-price.onrender.com/docs)** · [導覽 notebook](notebooks/walkthrough.ipynb)
 
 用內政部實價登錄的公開資料，分析高雄 2022–2026 年的房價，建立一個可以線上使用的估價模型，並評估 2024 年 9 月央行信用管制的影響。
 
@@ -173,6 +173,8 @@ streamlit run app/streamlit_app.py
 
 把同一個模型包成 REST API，讓其他系統（或面試官的 curl）可以直接呼叫，並附互動式 API 文件。
 
+**線上版：https://kaohsiung-housing-price.onrender.com/docs**（Render 免費方案，Docker 部署，main 分支有新 commit 會自動重新部署；閒置 15 分鐘會休眠，第一次請求需等 30–60 秒喚醒）
+
 | | |
 |---|---|
 | **文件** | `/docs`（Swagger UI，可直接在瀏覽器上送出請求）、`/openapi.json` |
@@ -194,7 +196,7 @@ docker run --rm -p 8000:8000 khp-api
 ```
 
 ```bash
-curl -X POST http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
+curl -X POST https://kaohsiung-housing-price.onrender.com/predict -H 'Content-Type: application/json' -d '{
   "district": "鳳山區", "btype": "大樓", "area_ping": 35, "age_years": 10,
   "total_floors": 15, "floor": 7, "road": "中山東路", "parking": "separate"}'
 ```
