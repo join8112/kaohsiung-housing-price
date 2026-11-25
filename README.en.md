@@ -23,7 +23,7 @@ An analysis of Kaohsiung house prices from 2022 to 2026 using Taiwan's public ac
 - **SQL:** market levels, year-over-year change and road rankings in SQLite (CTEs, window functions)
 - **Econometrics:** hedonic regression for a quality-adjusted price index; event study / DiD with a wild cluster bootstrap
 - **Machine learning:** XGBoost with out-of-time validation and SHAP explanations
-- **Deliverables:** [live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/) and a [walkthrough notebook](notebooks/walkthrough.ipynb)
+- **Deliverables:** [live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/), a [valuation API](#7-valuation-api-fastapi--docker) (FastAPI, Docker, GitHub Actions CI) and a [walkthrough notebook](notebooks/walkthrough.ipynb)
 
 ![Price index and volume](reports/figures/01_market_overview.png)
 
@@ -39,8 +39,9 @@ An analysis of Kaohsiung house prices from 2022 to 2026 using Taiwan's public ac
 4. [Valuation model](#4-valuation-model)
 5. [Policy study: the September 2024 credit controls](#5-policy-study-the-september-2024-credit-controls)
 6. [Valuation web app](#6-valuation-web-app)
-7. [Reproduce](#7-reproduce)
-8. [Project layout](#8-project-layout)
+7. [Valuation API (FastAPI + Docker)](#7-valuation-api-fastapi--docker)
+8. [Reproduce](#8-reproduce)
+9. [Project layout](#9-project-layout)
 
 ---
 
@@ -168,7 +169,50 @@ SHAP values show building age matters most, followed by district, road price lev
 streamlit run app/streamlit_app.py
 ```
 
-## 7. Reproduce
+## 7. Valuation API (FastAPI + Docker)
+
+The same model served as a REST API, so other systems (or a reviewer with `curl`) can call it, with interactive docs.
+
+| | |
+|---|---|
+| **Docs** | `/docs` (Swagger UI, requests can be sent from the browser), `/openapi.json` |
+| **Endpoints** | `POST /predict` one home, with the 80% interval and SHAP factors; `POST /predict/batch` up to 100 homes; `GET /model/info` training window and test-set accuracy; `GET /districts`; `GET /districts/{district}/roads`; `GET /health` |
+| **Validation** | Pydantic: district and building type must be ones the model knows, area / age / floor are range-checked, a non-detached home must give a floor no higher than `total_floors`; invalid input returns 422 |
+| **Container** | `Dockerfile` (python:3.13-slim, model baked into the image, non-root user, `/health` healthcheck, listens on `$PORT`) |
+| **CI** | GitHub Actions: pytest on Python 3.12 and 3.13, plus a job that builds the image, starts the container, waits for `/health` and asserts a `/predict` response is in a plausible range |
+
+The serving layer is `src/khp/predictor.py` and builds the feature row exactly as training (`src/khp/features.py`) and the Streamlit app do: the road-level encoding is looked up in `models/road_encoding.csv`, an unseen road falls back to the district mean, and `t` is pinned to the last month of training data — i.e. "what would this home sell for at today's price level".
+
+```bash
+# local
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload          # http://127.0.0.1:8000/docs
+
+# container
+docker build -t khp-api .
+docker run --rm -p 8000:8000 khp-api
+```
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
+  "district": "鳳山區", "btype": "大樓", "area_ping": 35, "age_years": 10,
+  "total_floors": 15, "floor": 7, "road": "中山東路", "parking": "separate"}'
+```
+
+```json
+{
+  "unit_price_10k_per_ping": 26.79,
+  "total_price_10k": 937.7,
+  "interval_80": {"unit_low": 22.04, "unit_high": 32.86, "total_low": 771.3, "total_high": 1150.1},
+  "road_used": "中山東路",
+  "baseline_unit_price": 26.64,
+  "top_factors": [{"feature": "age_years", "effect_pct": 9.94}, {"feature": "district", "effect_pct": -4.38}]
+}
+```
+
+Prices are in NT$10k, areas in ping. `top_factors` are SHAP values: how much each input moves the unit price above or below the model's average valuation of all homes sold.
+
+## 8. Reproduce
 
 ```bash
 pip install -r requirements.txt
@@ -180,7 +224,7 @@ python -m pytest                     # unit tests
 
 If the download URL stops working, download the CSV season files by hand from the [open-data page](https://plvr.land.moi.gov.tw/DownloadOpenData) (非本期下載) into `data/raw/`.
 
-## 8. Project layout
+## 9. Project layout
 
 ```
 scripts/download_data.py   download the quarterly files
@@ -194,9 +238,13 @@ src/khp/
   modeling.py              hedonic model and price index; baseline / OLS / XGBoost comparison
   policy.py                event study, DiD, wild cluster bootstrap
   plots.py                 report figures
+  predictor.py             serving layer for the API (loads the model, builds features, SHAP)
 sql/                       schema and six analysis queries
 app/streamlit_app.py       valuation web app
-tests/                     unit tests
+api/main.py                FastAPI valuation API; api/requirements.txt is the container's minimal deps
+Dockerfile, render.yaml    container build and Render deployment config
+.github/workflows/ci.yml   CI: pytest plus build image, start container, hit /predict
+tests/                     unit tests (parsers, wild cluster bootstrap, API)
 models/, reports/          trained model, tables and figures
 ```
 
