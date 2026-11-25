@@ -1,0 +1,11 @@
+# Render Blueprint: deploys the valuation API from the repo's Dockerfile.
+# https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: kaohsiung-housing-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeployTrigger: commit

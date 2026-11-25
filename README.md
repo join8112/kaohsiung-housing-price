@@ -23,7 +23,7 @@
 - **SQL**：在 SQLite 做行情、年增率、路段排名分析（CTE、視窗函數）
 - **計量經濟**：特徵價格模型建立品質調整房價指數；事件研究／DiD，搭配 wild cluster bootstrap
 - **機器學習**：XGBoost，用時間切分做樣本外驗證，SHAP 解釋
-- **成品**：[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)、[導覽 notebook](notebooks/walkthrough.ipynb)
+- **成品**：[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)、[估價 API](#7-估價-apifastapi--docker)（FastAPI、Docker、GitHub Actions CI）、[導覽 notebook](notebooks/walkthrough.ipynb)
 
 ![房價指數與交易量](reports/figures/01_market_overview.png)
 
@@ -39,8 +39,9 @@
 4. [估價模型](#4-估價模型)
 5. [政策分析：2024 年 9 月信用管制](#5-政策分析2024-年-9-月信用管制)
 6. [估價網頁](#6-估價網頁)
-7. [如何重現](#7-如何重現)
-8. [專案結構](#8-專案結構)
+7. [估價 API（FastAPI + Docker）](#7-估價-apifastapi--docker)
+8. [如何重現](#8-如何重現)
+9. [專案結構](#9-專案結構)
 
 ---
 
@@ -168,7 +169,50 @@ SHAP 顯示影響最大的是屋齡，其次是行政區、路段行情和交易
 streamlit run app/streamlit_app.py
 ```
 
-## 7. 如何重現
+## 7. 估價 API（FastAPI + Docker）
+
+把同一個模型包成 REST API，讓其他系統（或面試官的 curl）可以直接呼叫，並附互動式 API 文件。
+
+| | |
+|---|---|
+| **文件** | `/docs`（Swagger UI，可直接在瀏覽器上送出請求）、`/openapi.json` |
+| **主要端點** | `POST /predict` 單筆估價（含 80% 區間與 SHAP 影響因素）、`POST /predict/batch` 一次最多 100 筆、`GET /model/info` 訓練期間與測試集準確度、`GET /districts`、`GET /districts/{行政區}/roads`、`GET /health` |
+| **輸入驗證** | Pydantic：行政區／型態必須在模型認得的清單內，坪數、屋齡、樓層有範圍限制，非透天厝一定要填樓層且不得高於總樓層，錯誤回 422 |
+| **容器** | `Dockerfile`（python:3.13-slim，模型檔包進映像、非 root 執行、`/health` healthcheck，監聽 `$PORT`） |
+| **CI** | GitHub Actions：Python 3.12／3.13 跑 pytest，另一個 job 建映像、啟動容器、等 `/health`、打一次 `/predict` 驗證回傳值合理 |
+
+serving 的程式在 `src/khp/predictor.py`，特徵組法和訓練時（`src/khp/features.py`）、Streamlit app 完全一致：路段行情查 `models/road_encoding.csv`，沒見過的路名退回行政區平均；`t` 固定在訓練資料最後一個月，也就是「以目前價格水準估這間房子」。
+
+```bash
+# 本機
+pip install -r api/requirements.txt
+uvicorn api.main:app --reload          # http://127.0.0.1:8000/docs
+
+# 容器
+docker build -t khp-api .
+docker run --rm -p 8000:8000 khp-api
+```
+
+```bash
+curl -X POST http://127.0.0.1:8000/predict -H 'Content-Type: application/json' -d '{
+  "district": "鳳山區", "btype": "大樓", "area_ping": 35, "age_years": 10,
+  "total_floors": 15, "floor": 7, "road": "中山東路", "parking": "separate"}'
+```
+
+```json
+{
+  "unit_price_10k_per_ping": 26.79,
+  "total_price_10k": 937.7,
+  "interval_80": {"unit_low": 22.04, "unit_high": 32.86, "total_low": 771.3, "total_high": 1150.1},
+  "road_used": "中山東路",
+  "baseline_unit_price": 26.64,
+  "top_factors": [{"feature": "age_years", "effect_pct": 9.94}, {"feature": "district", "effect_pct": -4.38}]
+}
+```
+
+價格單位為萬元、面積為坪；`top_factors` 是 SHAP 值，表示該條件讓單價比「全市平均成交物件」高或低多少百分比。
+
+## 8. 如何重現
 
 ```bash
 pip install -r requirements.txt
@@ -180,7 +224,7 @@ python -m pytest                     # 單元測試
 
 若下載網址失效，可從 [實價登錄開放資料](https://plvr.land.moi.gov.tw/DownloadOpenData)「非本期下載」手動下載 CSV 格式的季檔，放進 `data/raw/`。
 
-## 8. 專案結構
+## 9. 專案結構
 
 ```
 scripts/download_data.py   下載季檔
@@ -194,9 +238,13 @@ src/khp/
   modeling.py              特徵價格模型與房價指數、baseline / OLS / XGBoost 比較
   policy.py                事件研究、DiD、wild cluster bootstrap
   plots.py                 報告圖
+  predictor.py             估價 API 的 serving 層（載入模型、組特徵、SHAP）
 sql/                       schema 與 6 支分析查詢
 app/streamlit_app.py       估價網頁
-tests/                     單元測試
+api/main.py                FastAPI 估價 API；api/requirements.txt 為容器用的最小依賴
+Dockerfile、render.yaml     容器化與 Render 部署設定
+.github/workflows/ci.yml   CI：pytest ＋ 建映像、啟動容器、打 /predict 驗證
+tests/                     單元測試（解析函式、wild cluster bootstrap、API）
 models/、reports/           訓練好的模型、報表與圖
 ```
 

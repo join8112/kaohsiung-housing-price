@@ -1,0 +1,8 @@
+# Runtime dependencies for the FastAPI service (used by the Dockerfile).
+# xgboost must match the version that saved models/xgb_unit_price.json
+# (same pin as app/requirements.txt).
+fastapi==0.123.0
+uvicorn==0.54.0
+xgboost==3.4.1
+pandas==3.0.5
+numpy==2.5.3

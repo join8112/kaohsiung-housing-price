@@ -18,6 +18,7 @@
 - [x] README.md（中文）＋ README.en.md（英文），內嵌 reports/figures 的圖（2026-11-23）
 - [x] 部署 Streamlit Community Cloud（2026-11-23，使用者帳號）：https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/
 - [x] notebooks/walkthrough.ipynb：執行過的導覽 notebook（2026-11-23；由 `jupyter nbconvert --execute` 重新產生輸出）
+- [x] 估價 API：`api/main.py`（FastAPI）＋ `src/khp/predictor.py`（serving 層）＋ `Dockerfile` ＋ `.github/workflows/ci.yml`，`tests/test_api.py` 17 個測試（2026-11-25）
 
 ## 真實資料結果（2026-11-23）
 
@@ -60,8 +61,12 @@ src/khp/features.py        特徵、路段 target encoding（out-of-fold）
 src/khp/modeling.py        特徵價格模型（月份固定效果 → 品質調整房價指數）＋ baseline / OLS / XGBoost 樣本外比較，最終模型存 models/
 src/khp/policy.py          信用管制事件研究與 DiD
 src/khp/plots.py           README 用的圖（reports/figures/）
+src/khp/predictor.py       估價 API 的 serving 層：載入 models/、組特徵（和訓練、Streamlit 完全一致）、SHAP
 app/streamlit_app.py       估價網頁：streamlit run app/streamlit_app.py
-tests/                     解析函式與 wild cluster bootstrap 的單元測試：python -m pytest
+api/main.py                FastAPI：uvicorn api.main:app --reload（/docs 有 Swagger UI）
+Dockerfile、render.yaml     容器（python:3.13-slim、非 root、監聽 $PORT）與 Render Blueprint
+.github/workflows/ci.yml   CI：Python 3.12/3.13 跑 pytest；另一 job 建映像、等 /health、打 /predict
+tests/                     解析函式、wild cluster bootstrap 與 API 的單元測試：python -m pytest
 ```
 
 ## 重要設計決策
@@ -99,3 +104,5 @@ tests/                     解析函式與 wild cluster bootstrap 的單元測�
 - `data/raw/`、`*.db`、大型 parquet 不 commit（見 .gitignore）。`models/` 與 `reports/` 的小檔案要 commit，Streamlit Cloud 部署需要。
 - 每完成一個階段就 commit。
 - Streamlit Cloud 用 `app/requirements.txt`（只裝 app 需要的 4 個套件），xgboost 版本要和存 `models/xgb_unit_price.json` 時一致；換版本重訓後要一起更新。
+- API 的容器用 `api/requirements.txt`（fastapi、uvicorn、xgboost、pandas、numpy），xgboost 版本同上，重訓換版本時三個 requirements 檔要一起改。
+- 模型輸入格式改動時，`src/khp/features.py`、`src/khp/predictor.py`、`app/streamlit_app.py` 三處要同步（app 之後可考慮改成呼叫 predictor）。

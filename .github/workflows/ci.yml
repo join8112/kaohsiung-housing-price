@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r api/requirements.txt httpx
+      - name: Run tests
+        run: python -m pytest -q
+
+  docker:
+    name: Docker image builds and serves predictions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t khp-api .
+      - name: Start container
+        run: docker run -d --name khp-api -p 8000:8000 khp-api
+      - name: Wait for /health
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/health; then exit 0; fi
+            sleep 2
+          done
+          echo "API did not become healthy"; docker logs khp-api; exit 1
+      - name: Smoke-test /predict
+        run: |
+          curl -fsS -X POST http://localhost:8000/predict \
+            -H 'Content-Type: application/json' \
+            -d '{"district":"鳳山區","btype":"大樓","area_ping":35,"age_years":10,"total_floors":15,"floor":7}' \
+            | tee /tmp/out.json
+          python -c "import json;d=json.load(open('/tmp/out.json'));assert 10 < d['unit_price_10k_per_ping'] < 80, d"
+      - name: Container logs
+        if: always()
+        run: docker logs khp-api
