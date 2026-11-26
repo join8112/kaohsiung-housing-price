@@ -1,6 +1,6 @@
 # Kaohsiung Housing Prices: Analysis and Valuation Model
 
-[中文版](README.md) · **[Live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · **[Valuation API docs](https://kaohsiung-housing-price.onrender.com/docs)** · [Walkthrough notebook](notebooks/walkthrough.ipynb)
+[中文版](README.md) · **[Live valuation app](https://kaohsiung-housing-price.streamlit.app/)** · **[Valuation API docs](https://kaohsiung-housing-price.onrender.com/docs)** · [Walkthrough notebook](notebooks/walkthrough.ipynb)
 
 An analysis of Kaohsiung house prices from 2022 to 2026 using Taiwan's public actual-price registry, with a valuation model you can use online and an evaluation of the September 2024 mortgage credit controls.
 
@@ -23,7 +23,7 @@ An analysis of Kaohsiung house prices from 2022 to 2026 using Taiwan's public ac
 - **SQL:** market levels, year-over-year change and road rankings in SQLite (CTEs, window functions)
 - **Econometrics:** hedonic regression for a quality-adjusted price index; event study / DiD with a wild cluster bootstrap
 - **Machine learning:** XGBoost with out-of-time validation and SHAP explanations
-- **Deliverables:** [live valuation app](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/), a [valuation API](#7-valuation-api-fastapi--docker) (FastAPI, Docker, GitHub Actions CI) and a [walkthrough notebook](notebooks/walkthrough.ipynb)
+- **Deliverables:** [live valuation app](https://kaohsiung-housing-price.streamlit.app/), a [valuation API](#7-valuation-api-fastapi--docker) (FastAPI, Docker, GitHub Actions CI) and a [walkthrough notebook](notebooks/walkthrough.ipynb)
 
 ![Price index and volume](reports/figures/01_market_overview.png)
 
@@ -159,7 +159,7 @@ SHAP values show building age matters most, followed by district, road price lev
 
 ## 6. Valuation web app
 
-**Live: https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/** (Streamlit Community Cloud; the app sleeps when idle, so the first load can take a few tens of seconds)
+**Live: https://kaohsiung-housing-price.streamlit.app/** (Streamlit Community Cloud; the app sleeps when idle, so the first load can take a few tens of seconds)
 
 `app/streamlit_app.py`: choose district, road, type, area, age, floor, layout, parking and additions to get a valuation, an 80% prediction interval (from the 10th/90th percentiles of test-period log residuals) and a SHAP breakdown of what drives the price. A second tab shows local market statistics.
 

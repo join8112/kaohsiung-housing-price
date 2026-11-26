@@ -1,6 +1,6 @@
 # 高雄房價分析與估價模型
 
-[English version](README.en.md) · **[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)** · **[估價 API 文件](https://kaohsiung-housing-price.onrender.com/docs)** · [導覽 notebook](notebooks/walkthrough.ipynb)
+[English version](README.en.md) · **[線上估價網頁](https://kaohsiung-housing-price.streamlit.app/)** · **[估價 API 文件](https://kaohsiung-housing-price.onrender.com/docs)** · [導覽 notebook](notebooks/walkthrough.ipynb)
 
 用內政部實價登錄的公開資料，分析高雄 2022–2026 年的房價，建立一個可以線上使用的估價模型，並評估 2024 年 9 月央行信用管制的影響。
 
@@ -23,7 +23,7 @@
 - **SQL**：在 SQLite 做行情、年增率、路段排名分析（CTE、視窗函數）
 - **計量經濟**：特徵價格模型建立品質調整房價指數；事件研究／DiD，搭配 wild cluster bootstrap
 - **機器學習**：XGBoost，用時間切分做樣本外驗證，SHAP 解釋
-- **成品**：[線上估價網頁](https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/)、[估價 API](#7-估價-apifastapi--docker)（FastAPI、Docker、GitHub Actions CI）、[導覽 notebook](notebooks/walkthrough.ipynb)
+- **成品**：[線上估價網頁](https://kaohsiung-housing-price.streamlit.app/)、[估價 API](#7-估價-apifastapi--docker)（FastAPI、Docker、GitHub Actions CI）、[導覽 notebook](notebooks/walkthrough.ipynb)
 
 ![房價指數與交易量](reports/figures/01_market_overview.png)
 
@@ -159,7 +159,7 @@ SHAP 顯示影響最大的是屋齡，其次是行政區、路段行情和交易
 
 ## 6. 估價網頁
 
-**線上版：https://kaohsiung-housing-price-gkrgupx6fvvypxjv8cxobe.streamlit.app/**（Streamlit Community Cloud；一段時間沒人使用會休眠，第一次開啟需等幾十秒喚醒）
+**線上版：https://kaohsiung-housing-price.streamlit.app/**（Streamlit Community Cloud；一段時間沒人使用會休眠，第一次開啟需等幾十秒喚醒）
 
 `app/streamlit_app.py`：選行政區、路名、型態、坪數、屋齡、樓層、格局、車位、是否有增建，就會給出估價、80% 預測區間（用測試期 log 殘差的 10%／90% 分位數），以及各因素對價格的影響（SHAP）。另有「區域行情」分頁。
 
